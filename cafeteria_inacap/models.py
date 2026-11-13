@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
 
@@ -22,10 +23,28 @@ class Producto(models.Model):
         on_delete=models.PROTECT,
         related_name="productos",
     )
-    codigo = models.CharField(max_length=10, unique=True)
+    codigo = models.CharField(
+        max_length=10,
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r"^CAF-\d{3}$",
+                message="El código debe tener el formato CAF-000.",
+            )
+        ],
+    )
     nombre = models.CharField(max_length=100)
-    precio = models.IntegerField()
-    stock = models.IntegerField()
+    precio = models.IntegerField(
+        validators=[
+            MinValueValidator(100, message="El precio mínimo es $100."),
+            MaxValueValidator(20000, message="El precio máximo es $20.000."),
+        ]
+    )
+    stock = models.IntegerField(
+        validators=[
+            MinValueValidator(0, message="El stock no puede ser negativo."),
+        ]
+    )
     disponible = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
 

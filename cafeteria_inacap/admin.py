@@ -1,21 +1,6 @@
 from django.contrib import admin
 
-from .models import Categoria, DetallePedido, Pedido, Producto
-
-
-@admin.register(Categoria)
-class CategoriaAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "activa")
-    list_filter = ("activa",)
-    search_fields = ("nombre", "descripcion")
-
-
-@admin.register(Producto)
-class ProductoAdmin(admin.ModelAdmin):
-    list_display = ("codigo", "nombre", "categoria", "precio", "stock", "disponible")
-    list_filter = ("categoria", "disponible")
-    search_fields = ("codigo", "nombre")
-    list_select_related = ("categoria",)
+from .models import DetallePedido, Pedido
 
 
 class DetallePedidoInline(admin.TabularInline):

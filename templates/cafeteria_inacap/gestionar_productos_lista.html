@@ -1,0 +1,50 @@
+{% extends "cafeteria_inacap/base.html" %}
+{% load precios %}
+
+{% block title %}Productos | Cafetería Fiores{% endblock %}
+
+{% block content %}
+    <h1>Productos</h1>
+    <p><a href="{% url 'producto_gestion_crear' %}">Crear producto</a></p>
+
+    <form method="get">
+        {{ form.as_p }}
+        <button type="submit">Filtrar</button>
+        <a href="{% url 'productos_gestion_lista' %}">Limpiar filtros</a>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Disponible</th>
+                <th>Detalle</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.codigo }}</td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.categoria.nombre }}</td>
+                    <td>{{ producto.precio|pesos_chilenos }}</td>
+                    <td>{{ producto.stock }}</td>
+                    <td>{% if producto.disponible %}Sí{% else %}No{% endif %}</td>
+                    <td>
+                        <a href="{% url 'producto_gestion_detalle' producto.pk %}">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">No hay productos para mostrar.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

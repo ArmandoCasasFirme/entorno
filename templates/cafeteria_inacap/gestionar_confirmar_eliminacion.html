@@ -1,0 +1,18 @@
+{% extends "cafeteria_inacap/base.html" %}
+
+{% block title %}{{ titulo }} | Cafetería Fiores{% endblock %}
+
+{% block content %}
+    <h1>{{ titulo }}</h1>
+    <p>¿Confirmas que quieres eliminar "{{ objeto }}"?</p>
+    <p>Si hay productos o pedidos relacionados, la eliminación será rechazada.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Confirmar eliminación</button>
+        {% if cancelar_pk %}
+            <a href="{% url cancelar_url cancelar_pk %}">Cancelar</a>
+        {% else %}
+            <a href="{% url cancelar_url %}">Cancelar</a>
+        {% endif %}
+    </form>
+{% endblock %}

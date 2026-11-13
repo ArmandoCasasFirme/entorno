@@ -1,9 +1,11 @@
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase
+from django.urls import reverse
 
 from .models import Categoria, DetallePedido, Pedido, Producto
 
@@ -17,7 +19,7 @@ class ModelConstraintTests(TestCase):
         )
         self.producto = Producto.objects.create(
             categoria=self.categoria,
-            codigo="BEB001",
+            codigo="CAF-101",
             nombre="Café",
             precio=1500,
             stock=10,
@@ -170,21 +172,21 @@ class ProductCatalogTests(TestCase):
         )
         self.cafe = Producto.objects.create(
             categoria=self.categoria,
-            codigo="CAF001",
+            codigo="CAF-101",
             nombre="Café espresso",
             precio=1500,
             stock=2,
         )
         self.agotado = Producto.objects.create(
             categoria=self.categoria,
-            codigo="CAF002",
+            codigo="CAF-102",
             nombre="Café filtrado",
             precio=2000,
             stock=0,
         )
         self.no_disponible = Producto.objects.create(
             categoria=self.categoria,
-            codigo="CAF003",
+            codigo="CAF-103",
             nombre="Café temporal",
             precio=1200,
             stock=5,
@@ -192,7 +194,7 @@ class ProductCatalogTests(TestCase):
         )
         self.de_categoria_inactiva = Producto.objects.create(
             categoria=self.categoria_inactiva,
-            codigo="TMP001",
+            codigo="CAF-104",
             nombre="Producto temporal",
             precio=1000,
             stock=4,
@@ -271,3 +273,206 @@ class ProductCatalogTests(TestCase):
         )
         self.assertContains(response, "Tu carrito está vacío.")
         self.assertEqual(self.client.session["carrito"], {})
+
+
+class StaffManagementTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        encargado = User.objects.create_user(username="gestor", is_staff=True)
+        self.cliente = User.objects.create_user(username="alumna")
+        self.client.force_login(encargado)
+
+        self.categoria = Categoria.objects.create(
+            nombre="Bebidas",
+            descripcion="Bebidas preparadas.",
+        )
+        self.producto = Producto.objects.create(
+            categoria=self.categoria,
+            codigo="CAF-201",
+            nombre="Café americano",
+            precio=1500,
+            stock=8,
+        )
+
+    def test_only_staff_can_open_management_pages(self):
+        self.client.force_login(self.cliente)
+
+        response = self.client.get(reverse("categorias_lista"))
+        self.assertEqual(response.status_code, 403)
+        response = self.client.get(reverse("productos_gestion_lista"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_categories_can_be_created_edited_and_deleted_after_confirmation(self):
+        response = self.client.post(
+            reverse("categoria_crear"),
+            {
+                "nombre": "Colaciones",
+                "descripcion": "Productos para colación.",
+                "activa": "on",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Categoría creada correctamente.")
+        categoria = Categoria.objects.get(nombre="Colaciones")
+
+        response = self.client.get(
+            reverse("categoria_eliminar", args=[categoria.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Categoria.objects.filter(pk=categoria.pk).exists())
+
+        response = self.client.post(
+            reverse("categoria_editar", args=[categoria.pk]),
+            {
+                "nombre": "Colaciones frías",
+                "descripcion": "Productos fríos para colación.",
+                "activa": "on",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Categoría actualizada correctamente.")
+
+        response = self.client.post(
+            reverse("categoria_eliminar", args=[categoria.pk]),
+            follow=True,
+        )
+        self.assertContains(response, "Categoría eliminada correctamente.")
+        self.assertFalse(Categoria.objects.filter(pk=categoria.pk).exists())
+
+    def test_category_with_products_shows_delete_error(self):
+        response = self.client.post(
+            reverse("categoria_eliminar", args=[self.categoria.pk]),
+            follow=True,
+        )
+
+        self.assertContains(
+            response,
+            "No se puede eliminar la categoría porque tiene productos.",
+        )
+        self.assertTrue(Categoria.objects.filter(pk=self.categoria.pk).exists())
+
+    def test_product_list_searches_name_and_code_and_filters_fields(self):
+        otro_producto = Producto.objects.create(
+            categoria=self.categoria,
+            codigo="CAF-202",
+            nombre="Té negro",
+            precio=1000,
+            stock=4,
+            disponible=False,
+        )
+
+        response = self.client.get(
+            reverse("productos_gestion_lista"),
+            {"q": "CAF-202", "categoria": self.categoria.pk, "disponible": "no"},
+        )
+        self.assertContains(response, otro_producto.nombre)
+        self.assertNotContains(response, self.producto.nombre)
+
+        response = self.client.get(
+            reverse("productos_gestion_lista"),
+            {"q": "americano", "disponible": "si"},
+        )
+        self.assertContains(response, self.producto.nombre)
+        self.assertNotContains(response, otro_producto.nombre)
+
+    def test_product_form_shows_code_price_and_stock_errors(self):
+        response = self.client.post(
+            reverse("producto_gestion_crear"),
+            {
+                "categoria": self.categoria.pk,
+                "codigo": "CAF-20",
+                "nombre": "Producto inválido",
+                "precio": "99",
+                "stock": "-1",
+                "disponible": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "El código debe tener el formato CAF-000.")
+        self.assertContains(response, "El precio mínimo es $100.")
+        self.assertContains(response, "El stock no puede ser negativo.")
+        self.assertFalse(
+            Producto.objects.filter(nombre="Producto inválido").exists()
+        )
+
+        response = self.client.post(
+            reverse("producto_gestion_crear"),
+            {
+                "categoria": self.categoria.pk,
+                "codigo": "CAF-203",
+                "nombre": "Producto caro",
+                "precio": "20001",
+                "stock": "1",
+                "disponible": "on",
+            },
+        )
+        self.assertContains(response, "El precio máximo es $20.000.")
+
+    def test_product_can_be_created_and_edited(self):
+        response = self.client.post(
+            reverse("producto_gestion_crear"),
+            {
+                "categoria": self.categoria.pk,
+                "codigo": "CAF-203",
+                "nombre": "Jugo de naranja",
+                "precio": "2000",
+                "stock": "3",
+                "disponible": "on",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Producto creado correctamente.")
+        producto = Producto.objects.get(codigo="CAF-203")
+
+        response = self.client.post(
+            reverse("producto_gestion_editar", args=[producto.pk]),
+            {
+                "categoria": self.categoria.pk,
+                "codigo": "CAF-204",
+                "nombre": "Jugo natural",
+                "precio": "2200",
+                "stock": "5",
+                "disponible": "on",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Producto actualizado correctamente.")
+        producto.refresh_from_db()
+        self.assertEqual(producto.codigo, "CAF-204")
+        self.assertEqual(producto.stock, 5)
+
+    def test_product_delete_is_confirmed_and_protected_by_orders(self):
+        response = self.client.get(
+            reverse("producto_gestion_eliminar", args=[self.producto.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Producto.objects.filter(pk=self.producto.pk).exists())
+
+        pedido = Pedido.objects.create(
+            cliente=self.cliente,
+            hora_retiro="12:30",
+            estado="pendiente",
+            total=self.producto.precio,
+            observacion="",
+        )
+        DetallePedido.objects.create(
+            pedido=pedido,
+            producto=self.producto,
+            cantidad=1,
+            precio_unitario=self.producto.precio,
+            subtotal=self.producto.precio,
+        )
+        response = self.client.post(
+            reverse("producto_gestion_eliminar", args=[self.producto.pk]),
+            follow=True,
+        )
+        self.assertContains(
+            response,
+            "No se puede eliminar el producto porque aparece en un pedido.",
+        )
+        self.assertTrue(Producto.objects.filter(pk=self.producto.pk).exists())
+
+    def test_categories_and_products_are_not_in_django_admin(self):
+        self.assertFalse(admin.site.is_registered(Categoria))
+        self.assertFalse(admin.site.is_registered(Producto))

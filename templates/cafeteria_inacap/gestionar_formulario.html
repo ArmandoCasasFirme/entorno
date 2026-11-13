@@ -1,0 +1,17 @@
+{% extends "cafeteria_inacap/base.html" %}
+
+{% block title %}{{ titulo }} | Cafetería Fiores{% endblock %}
+
+{% block content %}
+    <h1>{{ titulo }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Guardar</button>
+        {% if cancelar_pk %}
+            <a href="{% url cancelar_url cancelar_pk %}">Cancelar</a>
+        {% else %}
+            <a href="{% url cancelar_url %}">Cancelar</a>
+        {% endif %}
+    </form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "cafeteria_inacap/base.html" %}
+
+{% block title %}{{ categoria.nombre }} | Categorías{% endblock %}
+
+{% block content %}
+    <h1>{{ categoria.nombre }}</h1>
+    <p>Descripción: {{ categoria.descripcion }}</p>
+    <p>Estado: {% if categoria.activa %}Activa{% else %}Inactiva{% endif %}</p>
+    <p><a href="{% url 'categoria_editar' categoria.pk %}">Editar categoría</a></p>
+    <p><a href="{% url 'categoria_eliminar' categoria.pk %}">Eliminar categoría</a></p>
+
+    <h2>Productos de esta categoría</h2>
+    <ul>
+        {% for producto in categoria.productos.all %}
+            <li>
+                <a href="{% url 'producto_gestion_detalle' producto.pk %}">
+                    {{ producto.codigo }} - {{ producto.nombre }}
+                </a>
+            </li>
+        {% empty %}
+            <li>Esta categoría no tiene productos.</li>
+        {% endfor %}
+    </ul>
+    <p><a href="{% url 'categorias_lista' %}">Volver a categorías</a></p>
+{% endblock %}

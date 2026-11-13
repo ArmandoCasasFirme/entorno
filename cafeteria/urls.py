@@ -41,5 +41,55 @@ urlpatterns = [
         name="quitar_del_carrito",
     ),
     path("encargado/", views.encargado_dashboard, name="encargado"),
+    path(
+        "encargado/categorias/",
+        views.categorias_lista,
+        name="categorias_lista",
+    ),
+    path(
+        "encargado/categorias/nueva/",
+        views.categoria_formulario,
+        name="categoria_crear",
+    ),
+    path(
+        "encargado/categorias/<int:pk>/editar/",
+        views.categoria_formulario,
+        name="categoria_editar",
+    ),
+    path(
+        "encargado/categorias/<int:pk>/eliminar/",
+        views.categoria_eliminar,
+        name="categoria_eliminar",
+    ),
+    path(
+        "encargado/categorias/<int:pk>/",
+        views.categoria_detalle,
+        name="categoria_detalle",
+    ),
+    path(
+        "encargado/productos/",
+        views.productos_gestion_lista,
+        name="productos_gestion_lista",
+    ),
+    path(
+        "encargado/productos/nuevo/",
+        views.producto_gestion_formulario,
+        name="producto_gestion_crear",
+    ),
+    path(
+        "encargado/productos/<int:pk>/editar/",
+        views.producto_gestion_formulario,
+        name="producto_gestion_editar",
+    ),
+    path(
+        "encargado/productos/<int:pk>/eliminar/",
+        views.producto_gestion_eliminar,
+        name="producto_gestion_eliminar",
+    ),
+    path(
+        "encargado/productos/<int:pk>/",
+        views.producto_gestion_detalle,
+        name="producto_gestion_detalle",
+    ),
     path("admin/", admin.site.urls),
 ]

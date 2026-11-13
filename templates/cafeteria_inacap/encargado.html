@@ -4,6 +4,10 @@
 
 {% block content %}
     <h1>Área de encargado</h1>
-    <p>Administra categorías, productos y pedidos de la cafetería.</p>
-    <p><a href="{% url 'admin:index' %}">Abrir administración</a></p>
+    <p>Administra las categorías y productos de la cafetería.</p>
+    <ul>
+        <li><a href="{% url 'categorias_lista' %}">Gestionar categorías</a></li>
+        <li><a href="{% url 'productos_gestion_lista' %}">Gestionar productos</a></li>
+        <li><a href="{% url 'admin:index' %}">Gestionar pedidos</a></li>
+    </ul>
 {% endblock %}

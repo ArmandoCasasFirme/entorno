@@ -19,10 +19,6 @@ el menu muestra el usuario conectado y su rol en todo momento.
 
 respuesta de la ia:
 Agrego el inicio de sesion y cierre de sesion por POST en accounts/login y accounts/logout.
-la pagina requiere autenticacion y deriva al usuario segun el is_staff tal como se le pidio.
-realizo los cambios para la expiracion de los 30 min y ahora tambien muestra el nombre y rol del usuario autenticado.
-
-
 3. Requerimientos RF-03
 
 prompt:
@@ -30,3 +26,5 @@ necesito una vista de productos para el cliente, que muestre productos disponibl
 
 respuesta de la ia:
 Se agrega un catálogo con búsqueda y filtro por categorías activas. Los productos no disponibles o de categorías inactivas no aparecen; los productos sin stock se identifican como agotados y la vista también valida el stock al agregarlos al carrito. Los precios se muestran en pesos chilenos con punto como separador de miles.
+
+4. requerimientos RF-06

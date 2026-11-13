@@ -11,7 +11,9 @@
         <nav aria-label="Navegación principal">
             {% if user.is_staff %}
                 <a href="{% url 'encargado' %}">Inicio encargado</a>
-                <a href="{% url 'admin:index' %}">Administración</a>
+                <a href="{% url 'categorias_lista' %}">Categorías</a>
+                <a href="{% url 'productos_gestion_lista' %}">Productos</a>
+                <a href="{% url 'admin:index' %}">Pedidos</a>
             {% else %}
                 <a href="{% url 'cliente' %}">Inicio cliente</a>
                 <a href="{% url 'catalogo' %}">Catálogo</a>

@@ -1,0 +1,20 @@
+{% extends "cafeteria_inacap/base.html" %}
+
+{% block title %}Categorías | Cafetería Fiores{% endblock %}
+
+{% block content %}
+    <h1>Categorías</h1>
+    <p><a href="{% url 'categoria_crear' %}">Crear categoría</a></p>
+    <ul>
+        {% for categoria in categorias %}
+            <li>
+                <a href="{% url 'categoria_detalle' categoria.pk %}">
+                    {{ categoria.nombre }}
+                </a>
+                {% if categoria.activa %}(Activa){% else %}(Inactiva){% endif %}
+            </li>
+        {% empty %}
+            <li>No hay categorías creadas.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
