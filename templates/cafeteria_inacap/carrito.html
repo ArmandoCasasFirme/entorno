@@ -1,0 +1,32 @@
+{% extends "cafeteria_inacap/base.html" %}
+{% load precios %}
+
+{% block title %}Carrito | Cafetería Fiores{% endblock %}
+
+{% block content %}
+    <h1>Carrito</h1>
+    {% if items %}
+        <ul>
+            {% for item in items %}
+                <li>
+                    {{ item.producto.nombre }} — {{ item.cantidad }} x
+                    {{ item.producto.precio|pesos_chilenos }} =
+                    {{ item.subtotal|pesos_chilenos }}
+                    {% if not item.producto.disponible or not item.producto.categoria.activa %}
+                        <strong>Ya no disponible</strong>
+                    {% elif item.producto.stock < item.cantidad %}
+                        <strong>Stock insuficiente</strong>
+                    {% endif %}
+                    <form method="post" action="{% url 'quitar_del_carrito' item.producto.id %}">
+                        {% csrf_token %}
+                        <button type="submit">Quitar</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+        <p>Total: <strong>{{ total|pesos_chilenos }}</strong></p>
+    {% else %}
+        <p>Tu carrito está vacío.</p>
+    {% endif %}
+    <p><a href="{% url 'catalogo' %}">Volver al catálogo</a></p>
+{% endblock %}

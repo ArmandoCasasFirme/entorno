@@ -14,6 +14,8 @@
                 <a href="{% url 'admin:index' %}">Administración</a>
             {% else %}
                 <a href="{% url 'cliente' %}">Inicio cliente</a>
+                <a href="{% url 'catalogo' %}">Catálogo</a>
+                <a href="{% url 'carrito' %}">Carrito</a>
             {% endif %}
         </nav>
         <div>
@@ -26,6 +28,11 @@
         </div>
     </header>
     <main>
+        {% if messages %}
+            {% for message in messages %}
+                <p class="{{ message.tags }}" role="status">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 </body>

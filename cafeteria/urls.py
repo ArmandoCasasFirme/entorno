@@ -28,6 +28,18 @@ urlpatterns = [
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("", views.home, name="home"),
     path("cliente/", views.cliente_dashboard, name="cliente"),
+    path("cliente/catalogo/", views.catalogo, name="catalogo"),
+    path("cliente/carrito/", views.carrito, name="carrito"),
+    path(
+        "cliente/carrito/agregar/<int:producto_id>/",
+        views.agregar_al_carrito,
+        name="agregar_al_carrito",
+    ),
+    path(
+        "cliente/carrito/quitar/<int:producto_id>/",
+        views.quitar_del_carrito,
+        name="quitar_del_carrito",
+    ),
     path("encargado/", views.encargado_dashboard, name="encargado"),
     path("admin/", admin.site.urls),
 ]

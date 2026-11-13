@@ -151,3 +151,123 @@ class AuthenticationAndRoleTests(TestCase):
             self.client.get("/cliente/"),
             "/accounts/login/?next=/cliente/",
         )
+
+
+class ProductCatalogTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        cliente = User.objects.create_user(username="comprador", password="demo-pass-123")
+        self.client.force_login(cliente)
+
+        self.categoria = Categoria.objects.create(
+            nombre="Cafetería",
+            descripcion="Bebidas y café.",
+        )
+        self.categoria_inactiva = Categoria.objects.create(
+            nombre="Temporal",
+            descripcion="Categoría inactiva.",
+            activa=False,
+        )
+        self.cafe = Producto.objects.create(
+            categoria=self.categoria,
+            codigo="CAF001",
+            nombre="Café espresso",
+            precio=1500,
+            stock=2,
+        )
+        self.agotado = Producto.objects.create(
+            categoria=self.categoria,
+            codigo="CAF002",
+            nombre="Café filtrado",
+            precio=2000,
+            stock=0,
+        )
+        self.no_disponible = Producto.objects.create(
+            categoria=self.categoria,
+            codigo="CAF003",
+            nombre="Café temporal",
+            precio=1200,
+            stock=5,
+            disponible=False,
+        )
+        self.de_categoria_inactiva = Producto.objects.create(
+            categoria=self.categoria_inactiva,
+            codigo="TMP001",
+            nombre="Producto temporal",
+            precio=1000,
+            stock=4,
+        )
+
+    def test_catalog_lists_active_products_and_marks_zero_stock(self):
+        response = self.client.get("/cliente/catalogo/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Café espresso")
+        self.assertContains(response, "Café filtrado")
+        self.assertContains(response, "Agotado")
+        self.assertContains(response, "$1.500")
+        self.assertNotContains(response, "Café temporal")
+        self.assertNotContains(response, "Producto temporal")
+        self.assertNotContains(
+            response,
+            f'action="/cliente/carrito/agregar/{self.agotado.pk}/"',
+        )
+
+    def test_catalog_search_and_category_filter(self):
+        response = self.client.get(
+            "/cliente/catalogo/",
+            {"q": "espresso", "categoria": self.categoria.pk},
+        )
+
+        self.assertContains(response, "Café espresso")
+        self.assertNotContains(response, "Café filtrado")
+
+    def test_stock_validation_prevents_adding_unavailable_products(self):
+        response = self.client.post(
+            f"/cliente/carrito/agregar/{self.agotado.pk}/",
+        )
+        self.assertRedirects(response, "/cliente/catalogo/")
+        self.assertNotIn("carrito", self.client.session)
+
+        self.client.post(
+            f"/cliente/carrito/agregar/{self.no_disponible.pk}/",
+        )
+        self.client.post(
+            f"/cliente/carrito/agregar/{self.de_categoria_inactiva.pk}/",
+        )
+        self.assertNotIn("carrito", self.client.session)
+
+        response = self.client.post(
+            f"/cliente/carrito/agregar/{self.cafe.pk}/",
+        )
+        self.assertRedirects(response, "/cliente/catalogo/")
+        self.assertEqual(self.client.session["carrito"], {str(self.cafe.pk): 1})
+
+        self.client.post(f"/cliente/carrito/agregar/{self.cafe.pk}/")
+        self.assertEqual(self.client.session["carrito"], {str(self.cafe.pk): 2})
+
+        self.client.post(f"/cliente/carrito/agregar/{self.cafe.pk}/")
+        self.assertEqual(self.client.session["carrito"], {str(self.cafe.pk): 2})
+
+    def test_staff_cannot_access_client_catalog(self):
+        User = get_user_model()
+        encargado = User.objects.create_user(username="otro-encargado", is_staff=True)
+        self.client.force_login(encargado)
+
+        response = self.client.get("/cliente/catalogo/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_cart_displays_clp_total_and_removes_items(self):
+        self.client.post(f"/cliente/carrito/agregar/{self.cafe.pk}/")
+
+        response = self.client.get("/cliente/carrito/")
+        self.assertContains(response, "Café espresso")
+        self.assertContains(response, "$1.500")
+        self.assertContains(response, "$1.500</strong>")
+
+        response = self.client.post(
+            f"/cliente/carrito/quitar/{self.cafe.pk}/",
+            follow=True,
+        )
+        self.assertContains(response, "Tu carrito está vacío.")
+        self.assertEqual(self.client.session["carrito"], {})
