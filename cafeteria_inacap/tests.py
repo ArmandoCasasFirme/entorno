@@ -1,8 +1,9 @@
-from django.test import TestCase
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
+from django.test import TestCase
 
 from .models import Categoria, DetallePedido, Pedido, Producto
 
@@ -85,3 +86,68 @@ class DemoDataCommandTests(TestCase):
         self.assertEqual(User.objects.count(), 3)
         self.assertTrue(User.objects.get(username="encargado").is_staff)
         self.assertFalse(User.objects.get(username="cliente1").is_staff)
+
+
+class AuthenticationAndRoleTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.cliente = User.objects.create_user(
+            username="cliente",
+            password="cliente-seguro-123",
+        )
+        self.encargado = User.objects.create_user(
+            username="encargado",
+            password="encargado-seguro-123",
+            is_staff=True,
+        )
+
+    def test_application_routes_require_authentication(self):
+        response = self.client.get("/")
+        self.assertRedirects(response, "/accounts/login/?next=/")
+
+        response = self.client.get("/encargado/")
+        self.assertRedirects(
+            response,
+            "/accounts/login/?next=/encargado/",
+        )
+
+    def test_client_can_access_client_area_but_not_staff_area(self):
+        self.assertTrue(self.client.login(username="cliente", password="cliente-seguro-123"))
+
+        response = self.client.get("/cliente/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "cliente")
+        self.assertContains(response, "Cliente")
+
+        response = self.client.get("/encargado/")
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "Acceso denegado", status_code=403)
+        self.assertContains(response, "Usuario:", status_code=403)
+
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 302)
+
+    def test_staff_can_access_staff_area_but_not_client_area(self):
+        self.assertTrue(
+            self.client.login(username="encargado", password="encargado-seguro-123")
+        )
+
+        response = self.client.get("/")
+        self.assertRedirects(response, "/encargado/")
+        self.assertEqual(self.client.get("/encargado/").status_code, 200)
+        self.assertEqual(self.client.get("/cliente/").status_code, 403)
+
+    def test_logout_ends_session_and_session_timeout_is_30_minutes(self):
+        self.assertTrue(self.client.login(username="cliente", password="cliente-seguro-123"))
+
+        session = self.client.session
+        self.assertEqual(session.get_expiry_age(), 1800)
+        self.assertEqual(settings.SESSION_COOKIE_AGE, 1800)
+        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+
+        response = self.client.post("/accounts/logout/")
+        self.assertRedirects(response, "/accounts/login/")
+        self.assertRedirects(
+            self.client.get("/cliente/"),
+            "/accounts/login/?next=/cliente/",
+        )

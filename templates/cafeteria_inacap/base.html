@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Cafetería Fiores{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <a href="{% url 'home' %}"><strong>Cafetería Fiores</strong></a>
+        <nav aria-label="Navegación principal">
+            {% if user.is_staff %}
+                <a href="{% url 'encargado' %}">Inicio encargado</a>
+                <a href="{% url 'admin:index' %}">Administración</a>
+            {% else %}
+                <a href="{% url 'cliente' %}">Inicio cliente</a>
+            {% endif %}
+        </nav>
+        <div>
+            Usuario: <strong>{{ user.username }}</strong>
+            <span>({% if user.is_staff %}Encargado{% else %}Cliente{% endif %})</span>
+            <form method="post" action="{% url 'logout' %}" style="display: inline">
+                {% csrf_token %}
+                <button type="submit">Cerrar sesión</button>
+            </form>
+        </div>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar sesión | Cafetería Fiores</title>
+</head>
+<body>
+    <main>
+        <h1>Cafetería Fiores</h1>
+        <h2>Iniciar sesión</h2>
+        {% if form.errors %}
+            <p role="alert">Usuario o contraseña incorrectos.</p>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+            <button type="submit">Ingresar</button>
+        </form>
+    </main>
+</body>
+</html>
